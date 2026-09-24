@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>00631L 戰術查詢器</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--text:#111827;--muted:#667085;--line:#e5e7eb;--blue:#2563eb;--green:#0f766e;--red:#b42318;--amber:#b54708;--gray:#475467}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Segoe UI",sans-serif;color:var(--text)}
+.wrap{max-width:920px;margin:auto;padding:18px}h1{font-size:26px;margin:6px 0 4px}.sub{color:var(--muted);font-size:14px;margin-bottom:16px}
+.tabs{display:flex;gap:8px;margin:12px 0 14px;flex-wrap:wrap}.tab{border:1px solid var(--line);background:#fff;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}.tab.active{background:#111827;color:#fff}
+.panel{display:none}.panel.active{display:block}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}@media(max-width:680px){.grid,.grid3{grid-template-columns:1fr}}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}input,select{width:100%;padding:11px;border:1px solid #d0d5dd;border-radius:9px;font-size:16px;background:#fff}
+button{border:0;background:#111827;color:#fff;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer}button.secondary{background:#fff;color:#111827;border:1px solid #d0d5dd}button.blue{background:var(--blue)}
+.kpi{padding:13px;border-radius:11px;background:#f8fafc;border:1px solid var(--line)}.kpi .v{font-size:22px;font-weight:800;margin-top:4px}.result{border-left:5px solid var(--gray);background:#fafafa;padding:14px 15px;border-radius:10px;line-height:1.6}.result.buy{border-left-color:var(--blue);background:#eff6ff}.result.good{border-left-color:var(--green);background:#ecfdf3}.result.warn{border-left-color:var(--amber);background:#fffaeb}.result.stop{border-left-color:var(--red);background:#fef3f2}
+.small{font-size:13px;color:var(--muted)}table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:9px 7px;border-bottom:1px solid var(--line);text-align:left}.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#3538cd;font-size:12px;font-weight:700}.actions{display:flex;gap:8px;flex-wrap:wrap}footer{font-size:12px;color:var(--muted);padding:8px 2px 22px;line-height:1.5}
+</style>
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="00631L戰術">
+<link rel="apple-touch-icon" href="icon-180.png">
+
+</head>
+<body>
+<div class="wrap">
+<h1>00631L 戰術查詢器</h1>
+<div class="sub">核心 70/30 與 Short Trade 分開管理。資料保存在本機瀏覽器。</div>
+<div class="tabs"><button class="tab active" onclick="showTab('core',this)">70/30 核心</button><button class="tab" onclick="showTab('short',this)">Short Trade</button><button class="tab" onclick="showTab('log',this)">交易紀錄</button></div>
+<section id="core" class="panel active">
+<div class="card"><div class="grid3">
+<div><label>策略池（元）</label><input id="pool" type="number" value="300000"></div>
+<div><label>目前核心股數</label><input id="shares" type="number" value="3000" step="1000"></div>
+<div><label>帳務平均成本</label><input id="avgCost" type="number" value="38.14" step="0.01"></div>
+<div><label>核心現金（元）</label><input id="cash" type="number" value="185580"></div>
+<div><label>目前 00631L 價格</label><input id="corePrice" type="number" placeholder="例如 38.52" step="0.01"></div>
+<div><label>最近核心買進日</label><input id="lastBuyDate" type="date" value="2026-09-22"></div>
+</div><div class="actions" style="margin-top:12px"><button class="blue" onclick="calcCore()">查詢核心策略</button><button class="secondary" onclick="saveState()">儲存目前資料</button><button class="secondary" onclick="resetState()">恢復預設</button></div></div>
+<div class="card"><div class="grid3"><div class="kpi"><div class="small">股票市值</div><div id="mv" class="v">—</div></div><div class="kpi"><div class="small">00631L 權重</div><div id="weight" class="v">—</div></div><div class="kpi"><div class="small">帳面損益</div><div id="pnl" class="v">—</div></div></div><div id="coreResult" class="result" style="margin-top:12px">輸入目前價格後按「查詢核心策略」。</div></div>
+<div class="card"><span class="badge">建倉規則</span><table><tr><th>目前持股</th><th>觸發</th><th>動作</th></tr><tr><td>3 張</td><td>38.0～38.2</td><td>第 4 張買 1 張</td></tr><tr><td>4 張</td><td>37.2～37.5</td><td>第 5 張買 1 張</td></tr><tr><td>尚未完成建倉</td><td>連續 5 個交易日未回檔、仍 >38.5 且未明顯轉弱</td><td>時間補倉 1 張</td></tr><tr><td>任一階段</td><td>跌破約 37 且大盤同步明顯轉弱</td><td>暫停新增核心倉</td></tr></table><div class="small" style="margin-top:8px">完成初始建倉後：00631L 權重 &lt;65% → 買回 70%；&gt;75% → 賣回 70%；65%～75% → 不動。</div></div>
+<div class="card"><h3 style="margin-top:0">新增核心成交</h3><div class="grid3"><div><label>買進價格</label><input id="buyPrice" type="number" step="0.01"></div><div><label>股數</label><input id="buyShares" type="number" value="1000" step="1000"></div><div><label>交易成本/手續費（元，可填0）</label><input id="buyFee" type="number" value="0"></div></div><button style="margin-top:10px" onclick="addCoreTrade()">記錄核心買進</button></div>
+</section>
+<section id="short" class="panel">
+<div class="card"><div class="grid3">
+<div><label>目前價</label><input id="sCur" type="number" step="0.01"></div><div><label>開盤</label><input id="sOpen" type="number" step="0.01"></div><div><label>盤中高</label><input id="sHigh" type="number" step="0.01"></div><div><label>盤中低</label><input id="sLow" type="number" step="0.01"></div><div><label>盤中均價 / VWAP</label><input id="sVwap" type="number" step="0.01"></div><div><label>突破參考價（前高/整理高）</label><input id="sBreak" type="number" step="0.01"></div><div><label>0050 風險濾網</label><select id="marketFilter"><option value="bull">偏多</option><option value="neutral" selected>中性</option><option value="weak">轉弱</option></select></div><div><label>預計進場價</label><input id="entry" type="number" step="0.01"></div><div><label>模式</label><select id="tradeMode"><option value="day">當沖</option><option value="overnight">隔日沖</option></select></div>
+</div><div class="actions" style="margin-top:12px"><button class="blue" onclick="calcShort()">判斷 Short Trade</button><button class="secondary" onclick="fillEntry()">進場價＝目前價</button></div></div>
+<div class="card"><div id="shortResult" class="result">輸入盤中數字後按「判斷 Short Trade」。</div><div id="riskTable" style="margin-top:12px"></div></div>
+</section>
+<section id="log" class="panel"><div class="card"><h3 style="margin-top:0">核心交易紀錄</h3><div id="tradeLog"></div><div class="actions" style="margin-top:12px"><button class="secondary" onclick="exportData()">匯出 JSON 備份</button><button class="secondary" onclick="clearTrades()">清空自訂紀錄</button></div></div></section>
+<footer>這個工具只按你目前訂下的規則做機械式計算，不會自動下單。行情請以券商即時報價為準。Short Trade 的型態判讀是規則化輔助，不代表保證獲利。</footer>
+</div>
+<script>
+const defaults={pool:300000,shares:3000,avgCost:38.14,cash:185580,lastBuyDate:"2026-09-22",trades:[{date:"2026-09-18",type:"核心買進",shares:1000,price:37.40,note:"第1張"},{date:"2026-09-21",type:"核心買進",shares:1000,price:38.38,note:"第2張；前兩張含成本帳務均價37.92"},{date:"2026-09-22",type:"核心買進",shares:1000,price:38.58,note:"第3張"}]};
+function clone(o){return JSON.parse(JSON.stringify(o))} function fmt(n,d=0){return Number(n).toLocaleString('zh-TW',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function showTab(id,btn){document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active');if(id==='log')renderLog()}
+function getState(){try{return JSON.parse(localStorage.getItem('l00631l_state'))||clone(defaults)}catch(e){return clone(defaults)}}
+function saveState(){const s=getState();s.pool=+document.getElementById('pool').value||300000;s.shares=+document.getElementById('shares').value||0;s.avgCost=+document.getElementById('avgCost').value||0;s.cash=+document.getElementById('cash').value||0;s.lastBuyDate=document.getElementById('lastBuyDate').value||'';localStorage.setItem('l00631l_state',JSON.stringify(s));alert('已儲存在這個瀏覽器。')}
+function loadState(){const s=getState();document.getElementById('pool').value=s.pool;document.getElementById('shares').value=s.shares;document.getElementById('avgCost').value=s.avgCost;document.getElementById('cash').value=s.cash;document.getElementById('lastBuyDate').value=s.lastBuyDate}
+function resetState(){localStorage.setItem('l00631l_state',JSON.stringify(defaults));loadState();renderLog();alert('已恢復預設資料。')}
+function weekdaysBetween(a,b){if(!a||!b)return 0;let d=new Date(a+'T00:00:00'),e=new Date(b+'T00:00:00'),c=0;while(d<e){d.setDate(d.getDate()+1);const day=d.getDay();if(day!==0&&day!==6)c++}return c}
+function calcCore(){const pool=+document.getElementById('pool').value,sh=+document.getElementById('shares').value,cost=+document.getElementById('avgCost').value,cash=+document.getElementById('cash').value,p=+document.getElementById('corePrice').value;if(!p){alert('請輸入目前 00631L 價格');return}const mv=sh*p,total=mv+cash,w=total?mv/total:0,pnl=(p-cost)*sh;document.getElementById('mv').textContent='$'+fmt(mv,0);document.getElementById('weight').textContent=fmt(w*100,1)+'%';document.getElementById('pnl').textContent=(pnl>=0?'+':'')+'$'+fmt(pnl,0);const r=document.getElementById('coreResult');let cls='result ',msg='';if(sh<5000&&w<.65){const today=new Date().toISOString().slice(0,10),days=weekdaysBetween(document.getElementById('lastBuyDate').value,today);if(p<37){cls+='warn';msg='<b>建倉期：暫停追補。</b> 價格已低於約37；若大盤/0050也同步明顯轉弱，依規則先停止新增核心倉。'}else if(sh<=3000&&p>=38&&p<=38.2){cls+='buy';msg='<b>建倉觸發：第4張可買 1 張。</b> 目前價格落在 38.0～38.2。'}else if(sh>=4000&&p>=37.2&&p<=37.5){cls+='buy';msg='<b>建倉觸發：第5張可買 1 張。</b> 目前價格落在 37.2～37.5。'}else if(p>38.5&&days>=5){cls+='buy';msg='<b>時間觸發：可補 1 張。</b> 自上次核心買進已過 '+days+' 個平日，價格仍在38.5以上。請再確認市場沒有明顯轉弱。'}else{cls+='good';msg='<b>核心：持有，暫不加碼。</b> 尚未進入下一張價格區，時間條件也未觸發。'}msg+='<br><span class="small">目前市值權重 '+fmt(w*100,1)+'%，尚在建倉期；正式70/30權重帶尚未啟動。</span>'}else{const target=.70*total;if(w<.65){const amt=target-mv,exact=amt/p,lots=Math.max(1,Math.round(exact/1000));cls+='buy';msg='<b>再平衡：00631L 低於65%，買回70%。</b><br>理論需買約 '+fmt(exact,0)+' 股（約 '+fmt(amt,0)+' 元）；若只用整張，可參考 '+lots+' 張。'}else if(w>.75){const amt=mv-target,exact=amt/p,lots=Math.max(1,Math.round(exact/1000));cls+='warn';msg='<b>再平衡：00631L 高於75%，賣回70%。</b><br>理論需賣約 '+fmt(exact,0)+' 股（約 '+fmt(amt,0)+' 元）；若只用整張，可參考 '+lots+' 張。'}else{cls+='good';msg='<b>再平衡區間內：不動作。</b> 00631L 權重 '+fmt(w*100,1)+'%，位於65%～75%。'}}r.className=cls;r.innerHTML=msg}
+function addCoreTrade(){const price=+document.getElementById('buyPrice').value,qty=+document.getElementById('buyShares').value,fee=+document.getElementById('buyFee').value||0;if(!price||!qty){alert('請輸入買進價格與股數');return}const s=getState(),oldCost=s.avgCost*s.shares,newCost=price*qty+fee,newShares=s.shares+qty;s.avgCost=(oldCost+newCost)/newShares;s.shares=newShares;s.cash=s.cash-newCost;s.lastBuyDate=new Date().toISOString().slice(0,10);s.trades=s.trades||[];s.trades.push({date:s.lastBuyDate,type:'核心買進',shares:qty,price:price,fee:fee,note:'程式新增'});localStorage.setItem('l00631l_state',JSON.stringify(s));loadState();renderLog();alert('已更新：'+newShares+'股，帳務均價約 '+s.avgCost.toFixed(3)+' 元')}
+function fillEntry(){document.getElementById('entry').value=document.getElementById('sCur').value}
+function calcShort(){const cur=+document.getElementById('sCur').value,op=+document.getElementById('sOpen').value,hi=+document.getElementById('sHigh').value,lo=+document.getElementById('sLow').value,vw=+document.getElementById('sVwap').value,br=+document.getElementById('sBreak').value,filt=document.getElementById('marketFilter').value,mode=document.getElementById('tradeMode').value;let entry=+document.getElementById('entry').value||cur;if(!cur||!op||!hi||!lo){alert('至少輸入目前價、開盤、高、低');return}const pull=(hi-cur)/hi,rebound=(cur-lo)/lo,nearOpen=Math.abs(lo-op)/op<=.005,aboveVwap=!vw||cur>=vw,breakout=br&&cur>=br&&(cur/br-1)<=.01,pullbackSetup=pull>=.01&&pull<=.02&&rebound>=.004,openRetest=nearOpen&&cur>op&&aboveVwap;let score=0,reasons=[];if(pullbackSetup){score++;reasons.push('高點回落1%～2%後已有≥0.4%反彈')}if(openRetest){score++;reasons.push('開盤附近回踩後重新站回')}if(breakout){score++;reasons.push('突破參考價且未超過1%追價範圍')}if(aboveVwap)reasons.push('目前價不低於盤中均價');if(filt==='weak')score-=2;const out=document.getElementById('shortResult');let cls='result ',action='';if(filt==='weak'){cls+='stop';action='<b>現在動作：不做多。</b> 0050/市場濾網為轉弱。'}else if(score>=1){cls+='buy';action='<b>現在動作：可考慮買進 1 張 '+(mode==='day'?'當沖':'隔日沖')+'。</b>'}else{cls+='warn';action='<b>現在動作：不進。</b> 尚未形成足夠明確的回踩/突破結構。'}out.className=cls;out.innerHTML=action+'<br><span class="small">'+(reasons.length?reasons.join('；'):'目前沒有命中既定型態')+'</span>';const stop1=entry*.988,stop2=entry*.985,t1=entry*1.015,t2=entry*1.025;document.getElementById('riskTable').innerHTML='<table><tr><th>參考進場</th><th>停損區</th><th>第一目標</th><th>第二目標</th><th>最小單位</th></tr><tr><td>'+entry.toFixed(2)+'</td><td>'+stop2.toFixed(2)+'～'+stop1.toFixed(2)+'</td><td>'+t1.toFixed(2)+'</td><td>'+t2.toFixed(2)+'</td><td>當沖：1張=1,000股</td></tr></table>'}
+function renderLog(){const s=getState(),t=s.trades||[];let h='<table><tr><th>日期</th><th>類型</th><th>股數</th><th>成交價</th><th>備註</th></tr>';for(const x of t)h+='<tr><td>'+(x.date||'')+'</td><td>'+(x.type||'')+'</td><td>'+fmt(x.shares||0)+'</td><td>'+(x.price!=null?Number(x.price).toFixed(2):'')+'</td><td>'+(x.note||'')+'</td></tr>';h+='</table>';document.getElementById('tradeLog').innerHTML=h}
+function clearTrades(){if(confirm('只清除交易紀錄，不改目前持股資料？')){const s=getState();s.trades=[];localStorage.setItem('l00631l_state',JSON.stringify(s));renderLog()}}
+function exportData(){const s=getState(),blob=new Blob([JSON.stringify(s,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='00631L_strategy_backup.json';a.click();URL.revokeObjectURL(a.href)}
+loadState();renderLog();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+</script>
+
+</body></html>
